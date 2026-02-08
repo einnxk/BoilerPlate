@@ -14,8 +14,6 @@ import org.bukkit.plugin.java.JavaPlugin;
 import java.lang.reflect.Constructor;
 import java.lang.reflect.Field;
 import java.lang.reflect.Method;
-import java.net.URL;
-import java.net.URLClassLoader;
 import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
 
@@ -71,11 +69,6 @@ public class BoilerPlateBootstrap {
                 if (dep.required()) {
                     throw new DependencyNotFoundException("Required dependency '" + dep.name() + "' not found!");
                 }
-                continue;
-            }
-
-            if (dep.joinClasspath()) {
-                joinClasspath(plugin, dependencyPlugin);
             }
         }
     }
@@ -98,21 +91,16 @@ public class BoilerPlateBootstrap {
             ClassPath classPath = ClassPath.from(plugin.getClass().getClassLoader());
             Set<ClassPath.ClassInfo> classes = classPath.getTopLevelClassesRecursive(packageName);
 
-            int listenerCount = 0;
-            int commandCount = 0;
-
             for (ClassPath.ClassInfo classInfo : classes) {
                 try {
                     Class<?> clazz = Class.forName(classInfo.getName());
 
                     if (clazz.isAnnotationPresent(AutoListener.class)) {
                         registerListener(plugin, clazz);
-                        listenerCount++;
                     }
 
                     if (clazz.isAnnotationPresent(AutoCommand.class)) {
                         registerCommand(plugin, clazz);
-                        commandCount++;
                     }
                 } catch (ClassNotFoundException e) {
                     throw new RuntimeException("Could not load class: " + classInfo.getName());
@@ -186,22 +174,6 @@ public class BoilerPlateBootstrap {
             return (CommandMap) getCommandMap.invoke(server);
         } catch (Exception e) {
             throw new RuntimeException("Failed to get CommandMap", e);
-        }
-    }
-
-    private static void joinClasspath(JavaPlugin plugin, Plugin dependency) {
-        try {
-            URLClassLoader pluginLoader = (URLClassLoader) plugin.getClass().getClassLoader();
-            URLClassLoader depLoader = (URLClassLoader) dependency.getClass().getClassLoader();
-
-            Method addURL = URLClassLoader.class.getDeclaredMethod("addURL", URL.class);
-            addURL.setAccessible(true);
-
-            for (URL url : depLoader.getURLs()) {
-                addURL.invoke(pluginLoader, url);
-            }
-        } catch (Exception e) {
-            throw new AutoRegistrationException("Failed to add URLs to classpath: " + dependency.getName(), e);
         }
     }
 

@@ -1,8 +1,0 @@
-name: BoilderPlate
-version: '1.0'
-main: de.einnik.boilerPlate.BoilerPlate
-api-version: '1.21'
-load: STARTUP
-authors: [ EinNik ]
-description: Plugin to reduce the BoilerPlate code in a Paper Plugin
-website: https://github.com/einnxk/boilderplate

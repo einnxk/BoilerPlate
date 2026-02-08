@@ -21,8 +21,12 @@ repositories {
 
 dependencies {
     compileOnly 'io.papermc.paper:paper-api:1.21.8-R0.1-SNAPSHOT'
+
+    // Lombok
     compileOnly 'org.projectlombok:lombok:1.18.30'
     annotationProcessor 'org.projectlombok:lombok:1.18.30'
+
+    // Reflection
     implementation 'org.reflections:reflections:0.10.2'
     implementation 'com.google.guava:guava:32.1.3-jre'
 }
@@ -68,7 +72,7 @@ publishing {
         gpr(MavenPublication) {
             groupId = 'com.github.einnik'
             artifactId = 'boilerplate'
-            version = '0.3-alpha'
+            version = '0.5-alpha'
 
             from(components.java)
         }
