@@ -63,4 +63,29 @@ tasks.named("assemble") {
     dependsOn(shadowJar)
 }
 
+publishing {
+    publications {
+        gpr(MavenPublication) {
+            groupId = 'com.github.einnik'
+            artifactId = 'boilerplate'
+            version = '0.3-alpha'
+
+            from(components.java)
+        }
+    }
+
+    repositories {
+        maven {
+            name = "GitHubPackages"
+            url = uri("https://maven.pkg.github.com/einnxk/BoilerPlate")
+            credentials {
+                username = project.findProperty("gpr.user") ?: System.getenv("USERNAME")
+                password = project.findProperty("gpr.key") ?: System.getenv("TOKEN")
+            }
+        }
+    }
+}
+
+build.dependsOn shadowJar
+
 tasks.build.dependsOn tasks.shadowJar
