@@ -81,24 +81,24 @@ public class BoilerPlateLogger extends Logger{
 
     public void info(String message) {
         if (verboseDebugEnabled) {
-            broadcastToOps(Component.text("[" + plugin.getName() + "] ", NamedTextColor.GRAY)
-                    .append(Component.text("INFO: ", NamedTextColor.WHITE))
-                    .append(Component.text(message, NamedTextColor.GREEN)));
+            broadcastToOps(Component.text("[" + plugin.getName() + "] ", NamedTextColor.WHITE)
+                    .append(Component.text("INFO: ", NamedTextColor.AQUA))
+                    .append(Component.text(message, NamedTextColor.WHITE)));
         }
     }
 
     public void warning(String message) {
         if (verboseDebugEnabled) {
-            broadcastToOps(Component.text("[" + plugin.getName() + "] ", NamedTextColor.GRAY)
-                    .append(Component.text("WARNING: ", NamedTextColor.YELLOW, TextDecoration.BOLD))
-                    .append(Component.text(message, NamedTextColor.YELLOW)));
+            broadcastToOps(Component.text("[" + plugin.getName() + "] ", NamedTextColor.WHITE)
+                    .append(Component.text("WARNING: ", NamedTextColor.DARK_RED, TextDecoration.BOLD))
+                    .append(Component.text(message, NamedTextColor.RED)));
         }
     }
 
     public void severe(String message) {
         if (debugEnabled || verboseDebugEnabled) {
-            broadcastToOps(Component.text("[" + plugin.getName() + "] ", NamedTextColor.GRAY)
-                    .append(Component.text("ERROR: ", NamedTextColor.RED, TextDecoration.BOLD))
+            broadcastToOps(Component.text("[" + plugin.getName() + "] ", NamedTextColor.WHITE)
+                    .append(Component.text("ERROR: ", NamedTextColor.DARK_RED, TextDecoration.BOLD))
                     .append(Component.text(message, NamedTextColor.RED)));
         }
     }
@@ -106,8 +106,8 @@ public class BoilerPlateLogger extends Logger{
     public void severe(String message, Throwable throwable) {
 
         if (debugEnabled || verboseDebugEnabled) {
-            broadcastToOps(Component.text("[" + plugin.getName() + "] ", NamedTextColor.GRAY)
-                    .append(Component.text("ERROR: ", NamedTextColor.RED, TextDecoration.BOLD))
+            broadcastToOps(Component.text("[" + plugin.getName() + "] ", NamedTextColor.WHITE)
+                    .append(Component.text("ERROR: ", NamedTextColor.DARK_RED, TextDecoration.BOLD))
                     .append(Component.text(message, NamedTextColor.RED)));
 
             broadcastToOps(Component.text("  └─ ", NamedTextColor.RED)
@@ -132,8 +132,8 @@ public class BoilerPlateLogger extends Logger{
 
     public void debug(String message) {
         if (verboseDebugEnabled) {
-            broadcastToOps(Component.text("[" + plugin.getName() + "] ", NamedTextColor.GRAY)
-                    .append(Component.text("DEBUG: ", NamedTextColor.AQUA))
+            broadcastToOps(Component.text("[" + plugin.getName() + "] ", NamedTextColor.WHITE)
+                    .append(Component.text("DEBUG: ", NamedTextColor.GREEN))
                     .append(Component.text(message, NamedTextColor.WHITE)));
         }
     }
