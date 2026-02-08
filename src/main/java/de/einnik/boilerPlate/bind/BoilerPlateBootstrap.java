@@ -2,6 +2,8 @@ package de.einnik.boilerPlate.bind;
 
 import com.google.common.reflect.ClassPath;
 import de.einnik.boilerPlate.annotations.*;
+import de.einnik.boilerPlate.debug.BoilerPlateLogger;
+import de.einnik.boilerPlate.debug.ParentLoggerInitializeException;
 import org.bukkit.Bukkit;
 import org.bukkit.Server;
 import org.bukkit.command.*;
@@ -10,6 +12,7 @@ import org.bukkit.plugin.Plugin;
 import org.bukkit.plugin.java.JavaPlugin;
 
 import java.lang.reflect.Constructor;
+import java.lang.reflect.Field;
 import java.lang.reflect.Method;
 import java.net.URL;
 import java.net.URLClassLoader;
@@ -19,6 +22,7 @@ import java.util.concurrent.ConcurrentHashMap;
 public class BoilerPlateBootstrap {
 
     private static final Map<String, Object> PLUGIN_REGISTRY = new ConcurrentHashMap<>();
+    private static final Map<String, BoilerPlateLogger> LOGGER_REGISTRY = new ConcurrentHashMap<>();
 
     public static void initialize(JavaPlugin plugin) {
         Class<?> pluginClass = plugin.getClass();
@@ -27,12 +31,30 @@ public class BoilerPlateBootstrap {
             throw new IllegalStateException("Plugin class must be annotated with @BoilerPlatePlugin");
         }
 
+        boolean debugEnabled = pluginClass.isAnnotationPresent(EnableDebug.class);
+        boolean verboseDebugEnabled = pluginClass.isAnnotationPresent(EnableVerboseDebug.class);
+        BoilerPlateLogger bpLogger = new BoilerPlateLogger(plugin, debugEnabled, verboseDebugEnabled);
+
+        injectLogger(plugin, bpLogger);
+
         PLUGIN_REGISTRY.put(plugin.getName(), plugin);
+        LOGGER_REGISTRY.put(plugin.getName(), bpLogger);
 
         validateDependencies(plugin, pluginClass);
 
         if (pluginClass.isAnnotationPresent(EnableAutoRegistration.class)) {
             autoRegister(plugin, pluginClass);
+        }
+    }
+
+    private static void injectLogger(JavaPlugin plugin, BoilerPlateLogger customLogger) {
+        try {
+            Field loggerField = JavaPlugin.class.getDeclaredField("logger");
+            loggerField.setAccessible(true);
+            loggerField.set(plugin, customLogger);
+
+        } catch (Exception e) {
+            throw new ParentLoggerInitializeException(e);
         }
     }
 
@@ -185,5 +207,9 @@ public class BoilerPlateBootstrap {
 
     public static Object getPluginInstance(String name) {
         return PLUGIN_REGISTRY.get(name);
+    }
+
+    public static BoilerPlateLogger getLogger(String pluginName) {
+        return LOGGER_REGISTRY.get(pluginName);
     }
 }

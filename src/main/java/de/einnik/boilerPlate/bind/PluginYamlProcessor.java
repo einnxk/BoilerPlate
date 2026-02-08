@@ -44,10 +44,6 @@ public class PluginYamlProcessor extends AbstractProcessor {
             try {
                 assert config != null;
                 generatePaperPluginYml(config, classElement);
-                processingEnv.getMessager().printMessage(
-                        Diagnostic.Kind.NOTE,
-                        "Generated paper-plugin.yml for " + config.name()
-                );
             } catch (IOException e) {
                 processingEnv.getMessager().printMessage(
                         Diagnostic.Kind.ERROR,
