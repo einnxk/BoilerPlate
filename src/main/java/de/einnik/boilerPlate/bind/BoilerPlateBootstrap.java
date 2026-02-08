@@ -34,8 +34,6 @@ public class BoilerPlateBootstrap {
         if (pluginClass.isAnnotationPresent(EnableAutoRegistration.class)) {
             autoRegister(plugin, pluginClass);
         }
-
-        plugin.getLogger().info("BoilerPlate initialized for " + plugin.getName());
     }
 
     private static void validateDependencies(JavaPlugin plugin, Class<?> pluginClass) {
@@ -51,15 +49,12 @@ public class BoilerPlateBootstrap {
                 if (dep.required()) {
                     throw new DependencyNotFoundException("Required dependency '" + dep.name() + "' not found!");
                 }
-                plugin.getLogger().warning("Optional dependency '" + dep.name() + "' not found");
                 continue;
             }
 
             if (dep.joinClasspath()) {
                 joinClasspath(plugin, dependencyPlugin);
             }
-
-            plugin.getLogger().info("✓ Found dependency: " + dep.name());
         }
     }
 
@@ -112,10 +107,6 @@ public class BoilerPlateBootstrap {
             Object instance = clazz.getDeclaredConstructor().newInstance();
             if (instance instanceof Listener) {
                 Bukkit.getPluginManager().registerEvents((Listener) instance, plugin);
-                plugin.getLogger().info("✓ Registered listener: " + clazz.getSimpleName());
-            } else {
-                plugin.getLogger().warning("⚠ Class " + clazz.getSimpleName() +
-                        " has @AutoListener but doesn't implement Listener");
             }
         } catch (Exception e) {
             throw new AutoRegistrationException("Error while instantiating listener " + clazz.getSimpleName(), e);
@@ -151,13 +142,7 @@ public class BoilerPlateBootstrap {
                     ? plugin.getName().toLowerCase()
                     : annotation.fallbackPrefix();
 
-            boolean registered = commandMap.register(fallbackPrefix, commandInstance);
-
-            if (registered) {
-                plugin.getLogger().info("✓ Registered command: /" + annotation.command());
-            } else {
-                plugin.getLogger().warning("⚠ Command already exists: " + annotation.command());
-            }
+            commandMap.register(fallbackPrefix, commandInstance);
 
         } catch (NoSuchMethodException e) {
             throw new AutoRegistrationException(
@@ -193,10 +178,8 @@ public class BoilerPlateBootstrap {
             for (URL url : depLoader.getURLs()) {
                 addURL.invoke(pluginLoader, url);
             }
-
-            plugin.getLogger().info("✓ Joined classpath with: " + dependency.getName());
         } catch (Exception e) {
-            plugin.getLogger().warning("⚠ Failed to join classpath for: " + dependency.getName());
+            throw new AutoRegistrationException("Failed to add URLs to classpath: " + dependency.getName(), e);
         }
     }
 
