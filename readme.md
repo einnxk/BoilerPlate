@@ -3,7 +3,6 @@ Vermeide es in deinen Plugins immer den selben Code zu schreiben.
 <br>Nutze deine Zeit leiber mit spannenderen Tätigkeiten, als Listener oder Commands zu registrieren, jedoch auch das schreiben von Dependency Plugins oder API Plugins kann man vereinfachen.
 
 > [!WARNING]
-> **⚠️ Achtung ⚠️**
 > <br>Diese API ist nur für moderne Paper-Plugins gedacht die eine `Paper-Plugin.yml` besitzt. Das bedeutet, das nur 
 > Server die Paper oder einen Paper-Fork (z.B. Leaf) benutzen diese Plugins nutzen können. 
 > <br>Andere Server-Software wird nicht zu unterstützt
