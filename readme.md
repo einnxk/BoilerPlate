@@ -3,7 +3,6 @@ Vermeide es in deinen Plugins immer den selben Code zu schreiben.
 <br>Nutze deine Zeit leiber mit spannenderen Tätigkeiten, als Listener oder Commands zu registrieren, jedoch auch das schreiben von Dependency Plugins oder API Plugins kann man vereinfachen.
 
 > [!WARNING]
-> **⚠️ Achtung ⚠️**
 > <br>Diese API ist nur für moderne Paper-Plugins gedacht die eine `Paper-Plugin.yml` besitzt. Das bedeutet, das nur 
 > Server die Paper oder einen Paper-Fork (z.B. Leaf) benutzen diese Plugins nutzen können. 
 > <br>Andere Server-Software wird nicht zu unterstützt
@@ -279,8 +278,30 @@ package de.einnik.boilerPlate.loader;
 import de.einnik.boilerPlate.annotations.*;
 
 @SubAPI
-public class ExamplePlugin {
+public class ExampleAPIClass {
     
     // API Methods here
+}
+```
+
+### Auto File Provider
+Mit dem AutoFileProvider es nicht mehr nötig dateien manuell aus dem Plugins Config Ordner zu laden, oder dateien manuell aus dem Resource-Ordner zu kopieren.
+<br>Das ganze wird angewendet indem ein Feld das den Type `File` hat mit `@AutoProvideFile` annotiert wird, danach kann wie unten im Beispiel angeben werden ob das ganze wenn es auf dem Server nicht vorhanden ist aus 
+dem Resource-Ordner des Plugins kopiert werden soll.
+<br>Als Standard wird die Datei immer versucht zu kopieren, nach dem Laden/Erstellen zeigt das Feld das wir annotiert haben, dann auf die richtige File.
+```java
+package de.einnik.boilerPlate.loader;
+
+import de.einnik.boilerPlate.annotations.AutoProvideFile;
+
+import java.io.File;
+
+public class ExampleFileProvider {
+    
+    @AutoProvideFile
+    private static File config = new File("config.yml");
+    
+    @AutoProvideFile(copyIfNotExists = false)
+    private static File cached = new File("cached.properties");
 }
 ```

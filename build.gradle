@@ -72,7 +72,7 @@ publishing {
         gpr(MavenPublication) {
             groupId = 'com.github.einnik'
             artifactId = 'boilerplate'
-            version = '0.5-alpha'
+            version = '1.0-beta'
 
             from(components.java)
         }
