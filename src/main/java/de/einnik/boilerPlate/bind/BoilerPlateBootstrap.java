@@ -6,6 +6,7 @@ import de.einnik.boilerPlate.api.APIServiceRegistry;
 import de.einnik.boilerPlate.api.PluginClassDoesNotImplementMethodsException;
 import de.einnik.boilerPlate.debug.BoilerPlateLogger;
 import de.einnik.boilerPlate.debug.ParentLoggerInitializeException;
+import de.einnik.boilerPlate.loader.DependencyProvider;
 import org.bukkit.Bukkit;
 import org.bukkit.Server;
 import org.bukkit.command.*;
@@ -40,6 +41,10 @@ public class BoilerPlateBootstrap {
         PLUGIN_REGISTRY.put(plugin.getName(), plugin);
         LOGGER_REGISTRY.put(plugin.getName(), bpLogger);
 
+        if (pluginClass.isAnnotationPresent(EnableDependencyImprovisation.class)) {
+            provideDependencies(plugin, pluginClass);
+        }
+
         if (pluginClass.isAnnotationPresent(BoilerPlateAPI.class)) {
             registerAsAPI(plugin, pluginClass);
         }
@@ -49,6 +54,18 @@ public class BoilerPlateBootstrap {
         if (pluginClass.isAnnotationPresent(EnableAutoRegistration.class)) {
             autoRegister(plugin, pluginClass);
         }
+    }
+
+    private static void provideDependencies(JavaPlugin plugin, Class<?> pluginClass) {
+        EnableDependencyImprovisation annotation = pluginClass.getAnnotation(EnableDependencyImprovisation.class);
+
+        plugin.getLogger().fine("Dependency improvisation enabled");
+
+        DependencyProvider.provideDependencies(
+                plugin,
+                annotation.sql(),
+                annotation.hikari()
+        );
     }
 
     private static <T extends JavaPlugin> void registerAsAPI(T plugin, Class<?> pluginClass) {
