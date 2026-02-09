@@ -2,6 +2,8 @@ package de.einnik.boilerPlate.bind;
 
 import com.google.common.reflect.ClassPath;
 import de.einnik.boilerPlate.annotations.*;
+import de.einnik.boilerPlate.api.APIServiceRegistry;
+import de.einnik.boilerPlate.api.PluginClassDoesNotImplementMethodsException;
 import de.einnik.boilerPlate.debug.BoilerPlateLogger;
 import de.einnik.boilerPlate.debug.ParentLoggerInitializeException;
 import org.bukkit.Bukkit;
@@ -38,10 +40,37 @@ public class BoilerPlateBootstrap {
         PLUGIN_REGISTRY.put(plugin.getName(), plugin);
         LOGGER_REGISTRY.put(plugin.getName(), bpLogger);
 
+        if (pluginClass.isAnnotationPresent(BoilerPlateAPI.class)) {
+            registerAsAPI(plugin, pluginClass);
+        }
+
         validateDependencies(plugin, pluginClass);
 
         if (pluginClass.isAnnotationPresent(EnableAutoRegistration.class)) {
             autoRegister(plugin, pluginClass);
+        }
+    }
+
+    private static <T extends JavaPlugin> void registerAsAPI(T plugin, Class<?> pluginClass) {
+        @SuppressWarnings("unchecked")
+        Class<T> apiClass = (Class<T>) pluginClass;
+
+        APIServiceRegistry.registerAPI(plugin, apiClass, plugin);
+    }
+
+    public static void shutdown(JavaPlugin plugin) {
+        Class<?> pluginClass = plugin.getClass();
+
+        try {
+            if (pluginClass.isAnnotationPresent(BoilerPlateAPI.class)) {
+                APIServiceRegistry.unregisterAllAPIs(plugin);
+            }
+
+            PLUGIN_REGISTRY.remove(plugin.getName());
+            LOGGER_REGISTRY.remove(plugin.getName());
+
+        } catch (Exception e) {
+            throw new PluginClassDoesNotImplementMethodsException(e);
         }
     }
 

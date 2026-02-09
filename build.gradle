@@ -8,7 +8,7 @@ plugins {
 }
 
 group = 'de.einnik'
-version = '0.1.0-beta'
+version = '1.0-beta'
 var outputName = 'BoilerPlate'
 
 repositories {
@@ -89,7 +89,5 @@ publishing {
         }
     }
 }
-
-build.dependsOn shadowJar
 
 tasks.build.dependsOn tasks.shadowJar
