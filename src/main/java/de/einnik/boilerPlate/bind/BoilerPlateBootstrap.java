@@ -7,6 +7,7 @@ import de.einnik.boilerPlate.api.PluginClassDoesNotImplementMethodsException;
 import de.einnik.boilerPlate.debug.BoilerPlateLogger;
 import de.einnik.boilerPlate.debug.ParentLoggerInitializeException;
 import de.einnik.boilerPlate.loader.DependencyProvider;
+import de.einnik.boilerPlate.loader.FileProvider;
 import org.bukkit.Bukkit;
 import org.bukkit.Server;
 import org.bukkit.command.*;
@@ -45,6 +46,8 @@ public class BoilerPlateBootstrap {
             provideDependencies(plugin, pluginClass);
         }
 
+        provideFiles(plugin, pluginClass);
+
         if (pluginClass.isAnnotationPresent(BoilerPlateAPI.class)) {
             registerAsAPI(plugin, pluginClass);
         }
@@ -54,6 +57,11 @@ public class BoilerPlateBootstrap {
         if (pluginClass.isAnnotationPresent(EnableAutoRegistration.class)) {
             autoRegister(plugin, pluginClass);
         }
+    }
+
+    private static void provideFiles(JavaPlugin plugin, Class<?> pluginClass) {
+        String packageName = pluginClass.getPackageName();
+        FileProvider.provideFiles(plugin, packageName);
     }
 
     private static void provideDependencies(JavaPlugin plugin, Class<?> pluginClass) {
@@ -221,13 +229,5 @@ public class BoilerPlateBootstrap {
         } catch (Exception e) {
             throw new RuntimeException("Failed to get CommandMap", e);
         }
-    }
-
-    public static Object getPluginInstance(String name) {
-        return PLUGIN_REGISTRY.get(name);
-    }
-
-    public static BoilerPlateLogger getLogger(String pluginName) {
-        return LOGGER_REGISTRY.get(pluginName);
     }
 }
