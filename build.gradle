@@ -8,7 +8,7 @@ plugins {
 }
 
 group = 'de.einnik'
-version = '0.1.0-beta'
+version = '1.0-beta'
 var outputName = 'BoilerPlate'
 
 repositories {
@@ -21,8 +21,12 @@ repositories {
 
 dependencies {
     compileOnly 'io.papermc.paper:paper-api:1.21.8-R0.1-SNAPSHOT'
+
+    // Lombok
     compileOnly 'org.projectlombok:lombok:1.18.30'
     annotationProcessor 'org.projectlombok:lombok:1.18.30'
+
+    // Reflection
     implementation 'org.reflections:reflections:0.10.2'
     implementation 'com.google.guava:guava:32.1.3-jre'
 }
@@ -61,6 +65,29 @@ shadowJar {
 
 tasks.named("assemble") {
     dependsOn(shadowJar)
+}
+
+publishing {
+    publications {
+        gpr(MavenPublication) {
+            groupId = 'com.github.einnik'
+            artifactId = 'boilerplate'
+            version = '0.5-alpha'
+
+            from(components.java)
+        }
+    }
+
+    repositories {
+        maven {
+            name = "GitHubPackages"
+            url = uri("https://maven.pkg.github.com/einnxk/BoilerPlate")
+            credentials {
+                username = project.findProperty("gpr.user") ?: System.getenv("USERNAME")
+                password = project.findProperty("gpr.key") ?: System.getenv("TOKEN")
+            }
+        }
+    }
 }
 
 tasks.build.dependsOn tasks.shadowJar

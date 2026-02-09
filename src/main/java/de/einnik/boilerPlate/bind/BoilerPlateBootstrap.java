@@ -2,6 +2,10 @@ package de.einnik.boilerPlate.bind;
 
 import com.google.common.reflect.ClassPath;
 import de.einnik.boilerPlate.annotations.*;
+import de.einnik.boilerPlate.api.APIServiceRegistry;
+import de.einnik.boilerPlate.api.PluginClassDoesNotImplementMethodsException;
+import de.einnik.boilerPlate.debug.BoilerPlateLogger;
+import de.einnik.boilerPlate.debug.ParentLoggerInitializeException;
 import org.bukkit.Bukkit;
 import org.bukkit.Server;
 import org.bukkit.command.*;
@@ -10,33 +14,78 @@ import org.bukkit.plugin.Plugin;
 import org.bukkit.plugin.java.JavaPlugin;
 
 import java.lang.reflect.Constructor;
+import java.lang.reflect.Field;
 import java.lang.reflect.Method;
-import java.net.URL;
-import java.net.URLClassLoader;
 import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
 
 public class BoilerPlateBootstrap {
 
     private static final Map<String, Object> PLUGIN_REGISTRY = new ConcurrentHashMap<>();
+    private static final Map<String, BoilerPlateLogger> LOGGER_REGISTRY = new ConcurrentHashMap<>();
 
     public static void initialize(JavaPlugin plugin) {
         Class<?> pluginClass = plugin.getClass();
 
         if (!pluginClass.isAnnotationPresent(BoilerPlatePlugin.class)) {
-            throw new InternalBootstrapException("Plugin class must be annotated with @BoilerPlatePlugin");
+            throw new IllegalStateException("Plugin class must be annotated with @BoilerPlatePlugin");
         }
 
-        PLUGIN_REGISTRY.put(plugin.getName(), plugin);
+        boolean debugEnabled = pluginClass.isAnnotationPresent(EnableDebug.class);
+        boolean verboseDebugEnabled = pluginClass.isAnnotationPresent(EnableVerboseDebug.class);
+        BoilerPlateLogger bpLogger = new BoilerPlateLogger(plugin, debugEnabled, verboseDebugEnabled);
 
-        processDependencies(plugin, pluginClass);
+        injectLogger(plugin, bpLogger);
+
+        PLUGIN_REGISTRY.put(plugin.getName(), plugin);
+        LOGGER_REGISTRY.put(plugin.getName(), bpLogger);
+
+        if (pluginClass.isAnnotationPresent(BoilerPlateAPI.class)) {
+            registerAsAPI(plugin, pluginClass);
+        }
+
+        validateDependencies(plugin, pluginClass);
 
         if (pluginClass.isAnnotationPresent(EnableAutoRegistration.class)) {
             autoRegister(plugin, pluginClass);
         }
     }
 
-    private static void processDependencies(JavaPlugin plugin, Class<?> pluginClass) {
+    private static <T extends JavaPlugin> void registerAsAPI(T plugin, Class<?> pluginClass) {
+        @SuppressWarnings("unchecked")
+        Class<T> apiClass = (Class<T>) pluginClass;
+
+        APIServiceRegistry.registerAPI(plugin, apiClass, plugin);
+    }
+
+    public static void shutdown(JavaPlugin plugin) {
+        Class<?> pluginClass = plugin.getClass();
+
+        try {
+            if (pluginClass.isAnnotationPresent(BoilerPlateAPI.class)) {
+                APIServiceRegistry.unregisterAllAPIs(plugin);
+            }
+
+            PLUGIN_REGISTRY.remove(plugin.getName());
+            LOGGER_REGISTRY.remove(plugin.getName());
+
+        } catch (Exception e) {
+            throw new PluginClassDoesNotImplementMethodsException(e);
+        }
+    }
+
+    private static void injectLogger(JavaPlugin plugin, BoilerPlateLogger customLogger) {
+        try {
+            Field loggerField = JavaPlugin.class.getDeclaredField("logger");
+            loggerField.setAccessible(true);
+            loggerField.set(plugin, customLogger);
+
+        } catch (Exception e) {
+            throw new ParentLoggerInitializeException(e);
+        }
+    }
+
+    private static void validateDependencies(JavaPlugin plugin, Class<?> pluginClass) {
         PluginConfigurationFile config = pluginClass.getAnnotation(PluginConfigurationFile.class);
         if (config == null) {
             return;
@@ -49,20 +98,6 @@ public class BoilerPlateBootstrap {
                 if (dep.required()) {
                     throw new DependencyNotFoundException("Required dependency '" + dep.name() + "' not found!");
                 }
-                continue;
-            }
-
-            if (!dependencyPlugin.isEnabled()) {
-                String message = "Dependency '" + dep.name() + "' is not enabled!";
-                if (dep.required()) {
-                    throw new DependencyNotFoundException("Required " + message);
-                }
-                plugin.getLogger().warning(message);
-                continue;
-            }
-
-            if (dep.joinClasspath()) {
-                joinClasspath(plugin, dependencyPlugin);
             }
         }
     }
@@ -85,28 +120,24 @@ public class BoilerPlateBootstrap {
             ClassPath classPath = ClassPath.from(plugin.getClass().getClassLoader());
             Set<ClassPath.ClassInfo> classes = classPath.getTopLevelClassesRecursive(packageName);
 
-            int listenerCount = 0;
-            int commandCount = 0;
-
             for (ClassPath.ClassInfo classInfo : classes) {
                 try {
                     Class<?> clazz = Class.forName(classInfo.getName());
 
                     if (clazz.isAnnotationPresent(AutoListener.class)) {
                         registerListener(plugin, clazz);
-                        listenerCount++;
                     }
 
                     if (clazz.isAnnotationPresent(AutoCommand.class)) {
                         registerCommand(plugin, clazz);
-                        commandCount++;
                     }
                 } catch (ClassNotFoundException e) {
-                    throw new RuntimeException(e);
+                    throw new RuntimeException("Could not load class: " + classInfo.getName());
                 }
             }
+
         } catch (Exception e) {
-            throw new InternalBootstrapException("Failed to scan for package", e);
+            throw new InternalBootstrapException("Failed to register auto-registered listeners", e);
         }
     }
 
@@ -115,7 +146,6 @@ public class BoilerPlateBootstrap {
             Object instance = clazz.getDeclaredConstructor().newInstance();
             if (instance instanceof Listener) {
                 Bukkit.getPluginManager().registerEvents((Listener) instance, plugin);
-                plugin.getLogger().info("✓ Registered listener: " + clazz.getSimpleName());
             }
         } catch (Exception e) {
             throw new AutoRegistrationException("Error while instantiating listener " + clazz.getSimpleName(), e);
@@ -152,10 +182,11 @@ public class BoilerPlateBootstrap {
                     : annotation.fallbackPrefix();
 
             commandMap.register(fallbackPrefix, commandInstance);
+
         } catch (NoSuchMethodException e) {
             throw new AutoRegistrationException(
                     "Command class " + clazz.getSimpleName() +
-                            " must have a constructor with String parameter (command name)", e
+                            " must have a constructor with String parameter", e
             );
         } catch (Exception e) {
             throw new AutoRegistrationException(
@@ -175,23 +206,11 @@ public class BoilerPlateBootstrap {
         }
     }
 
-    private static void joinClasspath(JavaPlugin plugin, Plugin dependency) {
-        try {
-            URLClassLoader pluginLoader = (URLClassLoader) plugin.getClass().getClassLoader();
-            URLClassLoader depLoader = (URLClassLoader) dependency.getClass().getClassLoader();
-
-            Method addURL = URLClassLoader.class.getDeclaredMethod("addURL", URL.class);
-            addURL.setAccessible(true);
-
-            for (URL url : depLoader.getURLs()) {
-                addURL.invoke(pluginLoader, url);
-            }
-        } catch (Exception e) {
-            throw new RuntimeException(e);
-        }
-    }
-
     public static Object getPluginInstance(String name) {
         return PLUGIN_REGISTRY.get(name);
+    }
+
+    public static BoilerPlateLogger getLogger(String pluginName) {
+        return LOGGER_REGISTRY.get(pluginName);
     }
 }

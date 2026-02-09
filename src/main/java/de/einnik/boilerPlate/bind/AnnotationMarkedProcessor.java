@@ -47,7 +47,7 @@ public class AnnotationMarkedProcessor extends AbstractProcessor {
 
         processingEnv.getMessager().printMessage(
                 Diagnostic.Kind.NOTE,
-                "Marked @" + annotationType + " class as used: " + classElement.getQualifiedName()
+                "Registered a class annotated with @" + annotationType + " as name " + classElement.getQualifiedName()
         );
     }
 }
