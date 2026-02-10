@@ -26,7 +26,7 @@ repositories {
     mavenCentral()
     maven {
         name = "BoilerPlate" // der name kann frei gesetzt werden
-        url = uri("https://maven.pkg.github.com/Nikcraft-de-Development/GuiAPI")
+        url = uri("https://maven.pkg.github.com/einnxk/BoilerPlate")
     }
 }
 ```
