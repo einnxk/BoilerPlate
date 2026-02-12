@@ -1,3 +1,3 @@
-de.einnik.boilerPlate.bind.PluginYamlProcessor
-de.einnik.boilerPlate.bind.AnnotationMarkedProcessor
-de.einnik.boilerPlate.api.ApiProcessor
+com.thencproject.papership.bind.PluginYamlProcessor
+com.thencproject.papership.bind.AnnotationMarkedProcessor
+com.thencproject.papership.api.ApiProcessor

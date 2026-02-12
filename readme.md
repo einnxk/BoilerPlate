@@ -53,12 +53,12 @@ Dabei ist Wichtig zu wissen, deine paper-plugin.yml aus deinem Resource-Ordner w
 ```java
 package de.einnik.example;
 
-import de.einnik.boilerPlate.annotations.BoilerPlatePlugin;
-import de.einnik.boilerPlate.annotations.EnableAutoRegistration;
-import de.einnik.boilerPlate.annotations.PluginConfigurationFile;
-import de.einnik.boilerPlate.annotations.PluginDependency;
-import de.einnik.boilerPlate.bind.BoilerPlateProvider;
-import de.einnik.boilerPlate.bind.PluginLoading;
+import annotations.com.thencproject.papership.BoilerPlatePlugin;
+import annotations.com.thencproject.papership.EnableAutoRegistration;
+import annotations.com.thencproject.papership.PluginConfigurationFile;
+import annotations.com.thencproject.papership.PluginDependency;
+import bind.com.thencproject.papership.BoilerPlateProvider;
+import bind.com.thencproject.papership.PluginLoading;
 import org.bukkit.plugin.java.JavaPlugin;
 
 @BoilerPlatePlugin
@@ -90,17 +90,17 @@ public class ExamplePlugin extends JavaPlugin {
 ```
 Einen Listener zu definieren der Automatisch registriert wird ist nicht sehr schwer, wenn dieser in einem validen package liegt. 
 <br>Dies Funktioniert mit dem Hinzufügen der Annotation `@AutoListener` an die Klasse die den Bukkit-Listener implimentiert.
+
 ```java
 package de.einnik.boilerPlate.loader;
 
 import com.destroystokyo.paper.event.player.PlayerJumpEvent;
-import de.einnik.boilerPlate.annotations.*;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.Listener;
 
 @AutoListener
 public class ExampleListener implements Listener {
-    
+
     @EventHandler
     public void onJump(PlayerJumpEvent e) {
         // do sth here
@@ -113,7 +113,7 @@ public class ExampleListener implements Listener {
 ```java
 package de.einnik.boilerPlate.loader;
 
-import de.einnik.boilerPlate.annotations.AutoCommand;
+import annotations.com.thencproject.papership.AutoCommand;
 import org.bukkit.command.Command;
 import org.bukkit.command.CommandSender;
 import org.jetbrains.annotations.NotNull;
@@ -142,12 +142,12 @@ public class ExampleListener extends Command {
 Aus unserem Beispiel kennen wir ja schon das Grundkonstrukt eines BoilerPlate Plugins, wenn man nun keinen Zugriff auf die Konsole hat, auß welchen Gründen auch immer... - Dann hat man die Möglichkeit die Debug Logger zu nutzen.
 <br>Die Annotation `@EnableDebug` sorgt dabei nur dafür das Fehler des Levels Severe in den Chat für alle Spieler gebroadcasted werden.
 <br>Die Annotation `@EnableVerboseDebug` broadcasted hingegen jeden Fehler, oder jede Info in den Chat, die vom Plugin ausgehend ist. Dab ist keine der beiden Annotationen dazu gedacht während des Deployments da zu sein, sondern lediglich während des `Developements`.
+
 ```java
 package de.einnik.boilerPlate.loader;
 
-import de.einnik.boilerPlate.annotations.*;
-import de.einnik.boilerPlate.bind.BoilerPlateProvider;
-import de.einnik.boilerPlate.bind.PluginLoading;
+import bind.com.thencproject.papership.BoilerPlateProvider;
+import bind.com.thencproject.papership.PluginLoading;
 import org.bukkit.plugin.java.JavaPlugin;
 
 @BoilerPlatePlugin
@@ -164,17 +164,17 @@ import org.bukkit.plugin.java.JavaPlugin;
         website = "https://github.com/einnxk/BoilerPlate",
         dependencies = {
                 @PluginDependency(
-                       name = "LuckPerms",
-                       load = false,
-                       required = true,
-                       joinClasspath = true
+                        name = "LuckPerms",
+                        load = false,
+                        required = true,
+                        joinClasspath = true
                 )
         }
 )
 public class ExamplePlugin extends JavaPlugin {
 
     @Override
-    public void onEnable(){
+    public void onEnable() {
         BoilerPlateProvider.initialize(this);
     }
 }
@@ -185,19 +185,19 @@ Hier werden während des `Developements` die Klassen des `MySqlConnector` und vo
 <br>Standardmäßig wird allerdings nicht bereits gestellt, um dies zu aktivieren müssen wir auf die Main Klasse des Plugins die Annotation `@EnableDependencyImprovisation`
 anwenden, so werden standardmäßig beide dependencies provided mit den parametern, danach kann man einen der beiden deaktivieren.
 <br>Keines Falles soll hiermit das `Shaden` dieser Dependencies ersetz werden, es soll lediglich dazu dienen Schwierigkeiten während des `Entwicklungsprozesses` zu vereinfachen.
+
 ```java
 package de.einnik.boilerPlate.loader;
 
-import de.einnik.boilerPlate.annotations.*;
-import de.einnik.boilerPlate.bind.BoilerPlateProvider;
-import de.einnik.boilerPlate.bind.PluginLoading;
+import bind.com.thencproject.papership.BoilerPlateProvider;
+import bind.com.thencproject.papership.PluginLoading;
 import org.bukkit.plugin.java.JavaPlugin;
 
 @BoilerPlatePlugin
 @EnableAutoRegistration
 @EnableDependencyImprovisation(sql = false) // <- neu
 @EnableDebug
-@EnableVerboseDebug 
+@EnableVerboseDebug
 @PluginConfigurationFile(
         name = "ExamplePlugin",
         version = "1.0",
@@ -208,30 +208,30 @@ import org.bukkit.plugin.java.JavaPlugin;
         website = "https://github.com/einnxk/BoilerPlate",
         dependencies = {
                 @PluginDependency(
-                       name = "LuckPerms",
-                       load = false,
-                       required = true,
-                       joinClasspath = true
+                        name = "LuckPerms",
+                        load = false,
+                        required = true,
+                        joinClasspath = true
                 )
         }
 )
 public class ExamplePlugin extends JavaPlugin {
 
     @Override
-    public void onEnable(){
+    public void onEnable() {
         BoilerPlateProvider.initialize(this);
     }
 }
 ```
 
 ### API's erstellen
-Jetzt wird die Instanz des Plugins mit allen Feldern darin geladen und instanziert. Dabei wird die Klasse `ExamplePluginProvider` das Plugin heißt immer wie die Main Klasse mit dem Anhang `Provider`. In dieser Klasse gibt es dann die Methode `getAPI` die keine Parameter benötigt und mit der man die Instanz des Plugins bekommen kann. 
+Jetzt wird die Instanz des Plugins mit allen Feldern darin geladen und instanziert. Dabei wird die Klasse `ExamplePluginProvider` das Plugin heißt immer wie die Main Klasse mit dem Anhang `Provider`. In dieser Klasse gibt es dann die Methode `getAPI` die keine Parameter benötigt und mit der man die Instanz des Plugins bekommen kann.
+
 ```java
 package de.einnik.boilerPlate.loader;
 
-import de.einnik.boilerPlate.annotations.*;
-import de.einnik.boilerPlate.bind.BoilerPlateProvider;
-import de.einnik.boilerPlate.bind.PluginLoading;
+import bind.com.thencproject.papership.BoilerPlateProvider;
+import bind.com.thencproject.papership.PluginLoading;
 import org.bukkit.plugin.java.JavaPlugin;
 
 @BoilerPlatePlugin
@@ -250,36 +250,35 @@ import org.bukkit.plugin.java.JavaPlugin;
         website = "https://github.com/einnxk/BoilerPlate",
         dependencies = {
                 @PluginDependency(
-                       name = "LuckPerms",
-                       load = false,
-                       required = true,
-                       joinClasspath = true
+                        name = "LuckPerms",
+                        load = false,
+                        required = true,
+                        joinClasspath = true
                 )
         }
 )
 public class ExamplePlugin extends JavaPlugin {
 
     @Override
-    public void onEnable(){
+    public void onEnable() {
         BoilerPlateProvider.initialize(this);
     }
-    
+
     // neue Methode muss zwingend implimentiert werden
     @Override
-    public void onDisable(){
+    public void onDisable() {
         BoilerPlateProvider.shutdown(this);
     }
 }
 ```
 Unter Klassen der API's sind normale Klassen oder Enums die mit der Annotation `@SubAPI` annotiert wird. Man sieht daran das alle Methode als used markiert sind, wenn dies Erfolgreich ist.
+
 ```java
 package de.einnik.boilerPlate.loader;
 
-import de.einnik.boilerPlate.annotations.*;
-
 @SubAPI
 public class ExampleAPIClass {
-    
+
     // API Methods here
 }
 ```
@@ -292,7 +291,7 @@ dem Resource-Ordner des Plugins kopiert werden soll.
 ```java
 package de.einnik.boilerPlate.loader;
 
-import de.einnik.boilerPlate.annotations.AutoProvideFile;
+import annotations.com.thencproject.papership.AutoProvideFile;
 
 import java.io.File;
 

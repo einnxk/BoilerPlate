@@ -7,7 +7,7 @@ plugins {
     id 'com.github.johnrengelman.shadow' version '8.1.1'
 }
 
-group = 'de.einnik'
+group = 'com.thencproject'
 version = '1.0-beta'
 var outputName = 'BoilerPlate'
 
