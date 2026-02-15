@@ -1,3 +1,2 @@
-com.thencproject.papership.bind.PluginYamlProcessor
-com.thencproject.papership.bind.AnnotationMarkedProcessor
-com.thencproject.papership.api.ApiProcessor
+com.thencproject.papership.bind.PluginConfigurationFileAnnotationProcessor
+com.thencproject.papership.bind.AutoWiredAnnotationProcessor
