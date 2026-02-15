@@ -2,71 +2,79 @@ package com.thencproject.papership.bind;
 
 import com.google.common.reflect.ClassPath;
 import com.thencproject.papership.annotations.*;
-import de.einnik.boilerPlate.annotations.*;
-import com.thencproject.papership.api.APIServiceRegistry;
-import com.thencproject.papership.api.PluginClassDoesNotImplementMethodsException;
-import com.thencproject.papership.debug.BoilerPlateLogger;
-import com.thencproject.papership.debug.ParentLoggerInitializeException;
-import com.thencproject.papership.loader.DependencyProvider;
-import com.thencproject.papership.loader.FileProvider;
+import lombok.NonNull;
 import org.bukkit.Bukkit;
 import org.bukkit.Server;
-import org.bukkit.command.*;
+import org.bukkit.command.Command;
+import org.bukkit.command.CommandMap;
 import org.bukkit.event.Listener;
 import org.bukkit.plugin.Plugin;
 import org.bukkit.plugin.java.JavaPlugin;
 
 import java.lang.reflect.Constructor;
 import java.lang.reflect.Field;
+import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
-import java.util.*;
-import java.util.concurrent.ConcurrentHashMap;
+import java.util.Arrays;
+import java.util.Set;
 
-public class BoilerPlateBootstrap {
+/**
+ * Processing class for the main bootstrap class
+ * that is handling further processes -
+ * Listeners and Commands are registered here
+ */
+public class Bootstrap {
 
-    private static final Map<String, Object> PLUGIN_REGISTRY = new ConcurrentHashMap<>();
-    private static final Map<String, BoilerPlateLogger> LOGGER_REGISTRY = new ConcurrentHashMap<>();
-
+    /**
+     * Register a plugin as a papership plugin and
+     * calls the further methods here
+     * @param plugin the plugin that is registered
+     */
     public static void initialize(JavaPlugin plugin) {
         Class<?> pluginClass = plugin.getClass();
 
-        if (!pluginClass.isAnnotationPresent(BoilerPlatePlugin.class)) {
-            throw new IllegalStateException("Plugin class must be annotated with @BoilerPlatePlugin");
+        if (!pluginClass.isAnnotationPresent(PaperPlugin.class)) {
+            throw new IllegalStateException("Plugin class must be annotated with @PaperPlugin");
         }
 
         boolean debugEnabled = pluginClass.isAnnotationPresent(EnableDebug.class);
         boolean verboseDebugEnabled = pluginClass.isAnnotationPresent(EnableVerboseDebug.class);
-        BoilerPlateLogger bpLogger = new BoilerPlateLogger(plugin, debugEnabled, verboseDebugEnabled);
+        PaperShipLogger bpLogger = new PaperShipLogger(plugin, debugEnabled, verboseDebugEnabled);
 
         injectLogger(plugin, bpLogger);
 
-        PLUGIN_REGISTRY.put(plugin.getName(), plugin);
-        LOGGER_REGISTRY.put(plugin.getName(), bpLogger);
-
-        if (pluginClass.isAnnotationPresent(EnableDependencyImprovisation.class)) {
+        if (pluginClass.isAnnotationPresent(ImproviseDependencies.class)) {
             provideDependencies(plugin, pluginClass);
         }
 
         provideFiles(plugin, pluginClass);
 
-        if (pluginClass.isAnnotationPresent(BoilerPlateAPI.class)) {
-            registerAsAPI(plugin, pluginClass);
-        }
-
-        validateDependencies(plugin, pluginClass);
+        validateDependencies(pluginClass);
 
         if (pluginClass.isAnnotationPresent(EnableAutoRegistration.class)) {
             autoRegister(plugin, pluginClass);
         }
     }
 
+    /**
+     * Helper Method that calls the File Provider for providing
+     * fields marked with the fetching annotation
+     * @param plugin plugin called by
+     * @param pluginClass class of that plugin
+     */
     private static void provideFiles(JavaPlugin plugin, Class<?> pluginClass) {
         String packageName = pluginClass.getPackageName();
         FileProvider.provideFiles(plugin, packageName);
     }
 
+    /**
+     * Helper Method that calls and then download the SQL connectors
+     * and HikariCP
+     * @param plugin plugin called by
+     * @param pluginClass class of that plugin
+     */
     private static void provideDependencies(JavaPlugin plugin, Class<?> pluginClass) {
-        EnableDependencyImprovisation annotation = pluginClass.getAnnotation(EnableDependencyImprovisation.class);
+        ImproviseDependencies annotation = pluginClass.getAnnotation(ImproviseDependencies.class);
 
         plugin.getLogger().fine("Dependency improvisation enabled");
 
@@ -77,30 +85,12 @@ public class BoilerPlateBootstrap {
         );
     }
 
-    private static <T extends JavaPlugin> void registerAsAPI(T plugin, Class<?> pluginClass) {
-        @SuppressWarnings("unchecked")
-        Class<T> apiClass = (Class<T>) pluginClass;
-
-        APIServiceRegistry.registerAPI(plugin, apiClass, plugin);
-    }
-
-    public static void shutdown(JavaPlugin plugin) {
-        Class<?> pluginClass = plugin.getClass();
-
-        try {
-            if (pluginClass.isAnnotationPresent(BoilerPlateAPI.class)) {
-                APIServiceRegistry.unregisterAllAPIs(plugin);
-            }
-
-            PLUGIN_REGISTRY.remove(plugin.getName());
-            LOGGER_REGISTRY.remove(plugin.getName());
-
-        } catch (Exception e) {
-            throw new PluginClassDoesNotImplementMethodsException(e);
-        }
-    }
-
-    private static void injectLogger(JavaPlugin plugin, BoilerPlateLogger customLogger) {
+    /**
+     * Helper Method to initialize the verbose logger
+     * @param plugin plugin called by
+     * @param customLogger an instance of a PaperShipLogger
+     */
+    private static void injectLogger(JavaPlugin plugin, PaperShipLogger customLogger) {
         try {
             Field loggerField = JavaPlugin.class.getDeclaredField("logger");
             loggerField.setAccessible(true);
@@ -111,7 +101,11 @@ public class BoilerPlateBootstrap {
         }
     }
 
-    private static void validateDependencies(JavaPlugin plugin, Class<?> pluginClass) {
+    /**
+     * helper method to check if the dependencies are present
+     * @param pluginClass main class of the plugin
+     */
+    private static void validateDependencies(Class<?> pluginClass) {
         PluginConfigurationFile config = pluginClass.getAnnotation(PluginConfigurationFile.class);
         if (config == null) {
             return;
@@ -128,9 +122,15 @@ public class BoilerPlateBootstrap {
         }
     }
 
+    /**
+     * Search for auto listeners and commands in the given packages or
+     * if not defined all
+     * @param plugin the plugin
+     * @param pluginClass the main class of the plugin
+     */
     private static void autoRegister(JavaPlugin plugin, Class<?> pluginClass) {
         EnableAutoRegistration config = pluginClass.getAnnotation(EnableAutoRegistration.class);
-        String[] packages = config.scanPackages();
+        String[] packages = config.packages();
 
         if (packages.length == 0) {
             packages = new String[]{pluginClass.getPackageName()};
@@ -141,6 +141,12 @@ public class BoilerPlateBootstrap {
         }
     }
 
+    /**
+     * Search for auto listeners and commands in the given packages or
+     * if not defined all and automatically registers them
+     * @param plugin the plugin
+     * @param packageName the absolute package
+     */
     private static void scanAndRegister(JavaPlugin plugin, String packageName) {
         try {
             ClassPath classPath = ClassPath.from(plugin.getClass().getClassLoader());
@@ -150,11 +156,11 @@ public class BoilerPlateBootstrap {
                 try {
                     Class<?> clazz = Class.forName(classInfo.getName());
 
-                    if (clazz.isAnnotationPresent(AutoListener.class)) {
+                    if (clazz.isAnnotationPresent(AutoWiredListener.class)) {
                         registerListener(plugin, clazz);
                     }
 
-                    if (clazz.isAnnotationPresent(AutoCommand.class)) {
+                    if (clazz.isAnnotationPresent(AutoWiredCommand.class)) {
                         registerCommand(plugin, clazz);
                     }
                 } catch (ClassNotFoundException e) {
@@ -167,6 +173,11 @@ public class BoilerPlateBootstrap {
         }
     }
 
+    /**
+     * Register a Listener to the Bukkit Event Manager
+     * @param plugin the plugin the listener should be registered to
+     * @param clazz the class annotated as a listener
+     */
     private static void registerListener(JavaPlugin plugin, Class<?> clazz) {
         try {
             Object instance = clazz.getDeclaredConstructor().newInstance();
@@ -178,29 +189,17 @@ public class BoilerPlateBootstrap {
         }
     }
 
+    /**
+     * Register a command to paper commandMap by a class that is
+     * annotated with AutoWiredCommand
+     * @param plugin the plugin the command is from
+     * @param clazz the class that is annotated as a command
+     */
     private static void registerCommand(JavaPlugin plugin, Class<?> clazz) {
         try {
-            AutoCommand annotation = clazz.getAnnotation(AutoCommand.class);
+            AutoWiredCommand annotation = clazz.getAnnotation(AutoWiredCommand.class);
 
-            if (!Command.class.isAssignableFrom(clazz)) {
-                throw new AutoRegistrationException(
-                        "Class " + clazz.getSimpleName() + " must extend Command to use @AutoCommand"
-                );
-            }
-
-            Constructor<?> constructor = clazz.getDeclaredConstructor(String.class);
-            constructor.setAccessible(true);
-            Command commandInstance = (Command) constructor.newInstance(annotation.command());
-
-            if (!annotation.description().isEmpty()) {
-                commandInstance.setDescription(annotation.description());
-            }
-            if (!annotation.permission().isEmpty()) {
-                commandInstance.setPermission(annotation.permission());
-            }
-            if (annotation.aliases().length > 0) {
-                commandInstance.setAliases(Arrays.asList(annotation.aliases()));
-            }
+            Command commandInstance = getCommand(clazz, annotation);
 
             CommandMap commandMap = getCommandMap();
             String fallbackPrefix = annotation.fallbackPrefix().isEmpty()
@@ -221,6 +220,38 @@ public class BoilerPlateBootstrap {
         }
     }
 
+    /**
+     * @param clazz the class that is annotated as a command
+     * @param annotation the annotation that specifies the command
+     * @return a Bukkit Command
+     */
+    private static @NonNull Command getCommand(Class<?> clazz, AutoWiredCommand annotation) throws NoSuchMethodException, InstantiationException, IllegalAccessException, InvocationTargetException {
+        if (!Command.class.isAssignableFrom(clazz)) {
+            throw new AutoRegistrationException(
+                    "Class " + clazz.getSimpleName() + " must extend Command to use @AutoCommand"
+            );
+        }
+
+        Constructor<?> constructor = clazz.getDeclaredConstructor(String.class);
+        constructor.setAccessible(true);
+        Command commandInstance = (Command) constructor.newInstance(annotation.command());
+
+        if (!annotation.description().isEmpty()) {
+            commandInstance.setDescription(annotation.description());
+        }
+        if (!annotation.permission().isEmpty()) {
+            commandInstance.setPermission(annotation.permission());
+        }
+        if (annotation.aliases().length > 0) {
+            commandInstance.setAliases(Arrays.asList(annotation.aliases()));
+        }
+        return commandInstance;
+    }
+
+    /**
+     * Helper Method to get the commandMap of the plugin instance
+     * @return the paper commandMap of the server
+     */
     private static CommandMap getCommandMap() {
         try {
             Server server = Bukkit.getServer();

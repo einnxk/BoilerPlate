@@ -1,7 +1,7 @@
-package com.thencproject.papership.loader;
+package com.thencproject.papership.bind;
 
 import com.google.common.reflect.ClassPath;
-import com.thencproject.papership.annotations.AutoProvideFile;
+import com.thencproject.papership.annotations.AutoWiredFile;
 import org.bukkit.plugin.java.JavaPlugin;
 
 import java.io.File;
@@ -10,10 +10,21 @@ import java.lang.reflect.Field;
 import java.nio.file.Files;
 import java.nio.file.StandardCopyOption;
 import java.util.Set;
-import java.util.logging.Level;
 
+/**
+ * Helper class to provide the Files at runtime marked
+ * with @AutoWiredFile and provides the File if this
+ * is set in the Annotation
+ */
 public class FileProvider {
 
+    /**
+     * Method that is called from the outside to process all classes
+     * in the package here and further calls the helper methods
+     * @param plugin the plugin that is called on
+     * @param packageName the absolute package where there is searched
+     *                    for fields annotated with the @AutoWiredFile
+     */
     public static void provideFiles(JavaPlugin plugin, String packageName) {
         int providedCount = 0;
         int classesScanned = 0;
@@ -40,17 +51,23 @@ public class FileProvider {
         }
     }
 
+    /**
+     * Helper Method to get alle fields that are annotated in one
+     * class and then calls the next method onto them
+     * @param plugin the plugin the file is called by
+     * @param clazz the class to check for the annotation
+     * @return the count of fields processed successfully
+     */
     private static int processClassFields(JavaPlugin plugin, Class<?> clazz) {
         int providedCount = 0;
 
         for (Field field : clazz.getDeclaredFields()) {
-            if (field.isAnnotationPresent(AutoProvideFile.class)) {
+            if (field.isAnnotationPresent(AutoWiredFile.class)) {
                 try {
                     provideFile(plugin, clazz, field);
                     providedCount++;
                 } catch (Exception e) {
-                    plugin.getLogger().log(Level.SEVERE,
-                            "Failed to provide file for field: " + clazz.getName() + "." + field.getName(), e);
+                    throw new FileCopyException(e);
                 }
             }
         }
@@ -58,12 +75,17 @@ public class FileProvider {
         return providedCount;
     }
 
+    /**
+     * Helper Method to further process to file provider
+     * @param plugin the plugin the file is called by
+     * @param clazz the class where the annotated fields are in
+     * @param field the field that is annotated for providing
+     * @throws Exception while coping files
+     */
     private static void provideFile(JavaPlugin plugin, Class<?> clazz, Field field) throws Exception {
-        AutoProvideFile annotation = field.getAnnotation(AutoProvideFile.class);
+        AutoWiredFile annotation = field.getAnnotation(AutoWiredFile.class);
 
         if (field.getType() != File.class) {
-            plugin.getLogger().warning("@AutoProvideFile can only be used on File fields, skipping: " +
-                    clazz.getName() + "." + field.getName());
             return;
         }
 
@@ -71,28 +93,18 @@ public class FileProvider {
 
         Object instance = getOrCreateInstance(plugin, clazz, field);
 
-        if (instance == null) {
-            plugin.getLogger().fine("Skipping non-instantiable class: " + clazz.getName());
-            return;
-        }
+        if (instance == null) return;
 
         File initialFile = (File) field.get(instance);
 
-        if (initialFile == null) {
-            plugin.getLogger().warning("@AutoProvideFile field is null in " + clazz.getName() + "." + field.getName());
-            return;
-        }
+        if (initialFile == null) return;
 
         String fileName = initialFile.getPath();
         File targetFile = new File(plugin.getDataFolder(), fileName);
 
-        plugin.getLogger().fine("Processing file: " + fileName + " (from " + clazz.getSimpleName() + ")");
-
         File parentDir = targetFile.getParentFile();
         if (parentDir != null && !parentDir.exists()) {
-            if (parentDir.mkdirs()) {
-                plugin.getLogger().fine("Created directory: " + parentDir.getPath());
-            }
+            parentDir.mkdirs();
         }
 
         if (!targetFile.exists() && annotation.copyIfNotExists()) {
@@ -102,6 +114,15 @@ public class FileProvider {
         field.set(instance, targetFile);
     }
 
+    /**
+     * Tries to get an instance of the Class the file can only in injected
+     * into a static field or else a field named instance should be in the
+     * file
+     * @param plugin the plugin the API is called on
+     * @param clazz the class the annotated field is in
+     * @param field the field that is annotated
+     * @return an instance of that class
+     */
     private static Object getOrCreateInstance(JavaPlugin plugin, Class<?> clazz, Field field) {
         try {
             if (plugin.getClass().equals(clazz)) {
@@ -149,12 +170,16 @@ public class FileProvider {
         }
     }
 
+    /**
+     * Copy the File from the resource folder because it is not
+     * in the plugins directory
+     * @param plugin the instance of the plugin needed for the folder
+     * @param resourcePath the file that is copied
+     * @param targetFile the file that the content is pasted into
+     */
     private static void copyFromResources(JavaPlugin plugin, String resourcePath, File targetFile) {
         try (InputStream resourceStream = plugin.getResource(resourcePath)) {
-            if (resourceStream == null) {
-                plugin.getLogger().fine("Resource not found in JAR: " + resourcePath + " - skipping copy");
-                return;
-            }
+            if (resourceStream == null) return;
 
             Files.copy(resourceStream, targetFile.toPath(), StandardCopyOption.REPLACE_EXISTING);
 

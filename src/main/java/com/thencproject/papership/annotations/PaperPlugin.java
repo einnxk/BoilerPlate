@@ -5,8 +5,11 @@ import java.lang.annotation.Retention;
 import java.lang.annotation.RetentionPolicy;
 import java.lang.annotation.Target;
 
+/**
+ * Annotation to mark the entry point for all
+ * other service that this is the main class
+ * of the plugin that is using the API
+ */
 @Retention(RetentionPolicy.RUNTIME)
-@Target(ElementType.FIELD)
-public @interface AutoProvideFile {
-    boolean copyIfNotExists() default true;
-}
+@Target(ElementType.TYPE)
+public @interface PaperPlugin {}

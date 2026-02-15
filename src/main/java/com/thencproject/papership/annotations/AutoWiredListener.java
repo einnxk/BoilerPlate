@@ -5,12 +5,12 @@ import java.lang.annotation.Retention;
 import java.lang.annotation.RetentionPolicy;
 import java.lang.annotation.Target;
 
+/**
+ * Classes marked with this annotation are if enabled
+ * in the main class automatically registered als
+ * Bukkit Listener which means they have to implement
+ * the Bukkit Listener
+ */
 @Retention(RetentionPolicy.RUNTIME)
 @Target(ElementType.TYPE)
-public @interface AutoCommand {
-    String command();
-    String fallbackPrefix() default "";
-    String permission() default "";
-    String description() default "";
-    String[] aliases() default {};
-}
+public @interface AutoWiredListener {}
